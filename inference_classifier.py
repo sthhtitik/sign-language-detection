@@ -3,6 +3,7 @@ import pickle
 import cv2
 import mediapipe as mp
 import numpy as np
+import pyttsx3
 
 model_dict = pickle.load(open('./model.p', 'rb'))
 model = model_dict["model"]
@@ -16,8 +17,17 @@ mp_drawing_styles = mp.solutions.drawing_styles
 
 hands = mp_hands.Hands(static_image_mode=True, min_detection_confidence=0.3)
 
-labels_dict = {i: chr(65 + i) if i < 26 else str(i - 26) for i in range(36)}
-
+labels_dict = {
+    0: 'Good',
+    1: 'Bad',
+    2: 'Perfect',
+    3: 'Bathroom',
+    4: 'What are you doing',
+    5: 'I love you',
+    6: 'I hate you',
+    7: 'Fuck U'
+}
+previous_detected = None
 while True:
 
     data_aux = []
@@ -60,13 +70,17 @@ while True:
 
         x2 = int(max(x_) * W) - 10
         y2 = int(max(y_) * H) - 10
-        desired_length = 84
-# Pad data_aux with zeros to achieve the desired length
-        while len(data_aux) < desired_length:
-            data_aux.extend([0.0, 0.0])
 
-        # Truncate data_aux if it exceeds the desired length
-        data_aux = data_aux[:desired_length]
+        #if two hand data trained ----------------------
+#         desired_length = 84
+# # Pad data_aux with zeros to achieve the desired length
+#         while len(data_aux) < desired_length:
+#             data_aux.extend([0.0, 0.0])
+
+#         # Truncate data_aux if it exceeds the desired length
+#         data_aux = data_aux[:desired_length]
+        # ends here -----------------------
+        
         prediction = model.predict([np.asarray(data_aux)])
 
         predicted_character = labels_dict[int(prediction[0])]
@@ -74,6 +88,16 @@ while True:
         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 0), 4)
         cv2.putText(frame, predicted_character, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.3, (0, 0, 0), 3,
                     cv2.LINE_AA)
+        
+        #speech part------------------
+        if predicted_character != previous_detected:
+            text = "What are you doing?"
+            engine = pyttsx3.init()
+            engine.say(predicted_character)
+            engine.runAndWait()
+            previous_detected = predicted_character
+        # ends here -----------------
+
 
     cv2.imshow('frame', frame)
     cv2.waitKey(1)
